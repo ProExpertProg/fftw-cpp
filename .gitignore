@@ -1,3 +1,7 @@
+# CMake output dirs
+cmake-build-*
+CMakeUserPresets.json
+
 # Prerequisites
 *.d
 
