@@ -26,6 +26,7 @@ namespace fftw {
     class basic_buffer {
     public:
         using element_type = std::conditional_t<IsReal, Real, Complex>;
+        using value_type = element_type; ///< for STL-compatibility, TODO remove element_type
         using pointer = element_type *;
         using reference = element_type &;
         using const_pointer = const element_type *;

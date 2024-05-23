@@ -45,4 +45,4 @@ namespace fftw {
     template<bool IsReal, class Real, class Complex>
     using underlying_element_type = std::conditional_t<IsReal, Real, detail::fftw_complex_t<Real>>;
 
-}
+} // fftw
