@@ -7,8 +7,8 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 add_executable(fftw-cpp-tests
-        run-all-tests.cpp
         test-1d-c2c.cpp
 )
-target_link_libraries(fftw-cpp-tests fftw-cpp gmock_main)
+
+target_link_libraries(fftw-cpp-tests fftw-cpp GTest::gmock_main)
 add_test(fftw-cpp-all-tests fftw-cpp-tests)
