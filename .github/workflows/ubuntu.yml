@@ -1,9 +1,9 @@
 name: Ubuntu CI Test
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -18,7 +18,7 @@ jobs:
           wget https://www.fftw.org/fftw-3.3.10.tar.gz && tar -xf fftw-3.3.10.tar.gz && cd fftw-3.3.10 && ./configure --prefix=`realpath ../fftw-install` && make && make install
       - name: configure
         run: |
-          cmake -S . -B cmake-build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_CXX_FLAGS="-I./fftw-install/include" -DCMAKE_EXE_LINKER_FLAGS="-L./fftw-install/lib"
+          cmake -S . -B cmake-build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_CXX_FLAGS=-I`realpath ./fftw-install/include` -DCMAKE_EXE_LINKER_FLAGS=-L`realpath ./fftw-install/lib`
       - name: building
         run: |
           cmake --build cmake-build-debug
