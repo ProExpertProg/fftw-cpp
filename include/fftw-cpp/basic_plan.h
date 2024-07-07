@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+#include <type_traits>
 #include "basic_buffer.h"
 #include "util.h"
 
@@ -52,20 +54,16 @@ namespace fftw {
 
     template<size_t D, class Real, class Complex = std::complex<Real>>
     class basic_plan {
+    private:
+        using plan_t = detail::fftw_plan_t<Real>;
+        std::unique_ptr<std::remove_pointer_t<plan_t>, decltype(&fftw_destroy_plan)> plan;
+
     public:
         using real_t = Real;
         using complex_t = Complex;
 
-        basic_plan() noexcept = default;
-
-        ~basic_plan();
-
-        /// Deleted copy constructor to disable copying
-        basic_plan(const basic_plan &) = delete;
-
-        basic_plan(basic_plan &&other) noexcept; ///< Move constructor
-        basic_plan &operator=(basic_plan &&other) noexcept; ///< Move assignment
-        void swap(basic_plan &other) noexcept;
+        basic_plan() noexcept: plan(nullptr, &fftw_destroy_plan) {}
+        explicit basic_plan(plan_t ptr) noexcept: plan(ptr, &fftw_destroy_plan) {}
 
         /// Executes the plan with the buffers provided initially.
         void operator()() const;
@@ -79,7 +77,8 @@ namespace fftw {
         void operator()(ViewIn in, ViewOut out) const;
 
         /// Returns the underlying FFTW plan.
-        detail::fftw_plan_t<Real> unwrap() { return plan; }
+        plan_t c_plan() { return plan.get(); }
+        plan_t c_plan() const { return plan.get(); }
 
         /// \defgroup{planning utilities}
         template<typename BufferIn, typename BufferOut>
@@ -90,35 +89,11 @@ namespace fftw {
         requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
         static auto dft(ViewIn in, ViewOut out, Direction direction, Flags flags) -> basic_plan;
 
-    private:
-        detail::fftw_plan_t<Real> plan{nullptr};
     };
 
     template<size_t D, class Real, class Complex>
-    basic_plan<D, Real, Complex>::~basic_plan() {
-        if (plan != nullptr) fftw_destroy_plan(plan);
-        plan = nullptr;
-    }
-
-    template<size_t D, class Real, class Complex>
-    void basic_plan<D, Real, Complex>::swap(basic_plan &other) noexcept {
-        std::swap(plan, other.plan);
-    }
-
-    template<size_t D, class Real, class Complex>
-    basic_plan<D, Real, Complex>::basic_plan(basic_plan &&other) noexcept {
-        other.swap(*this);
-    }
-
-    template<size_t D, class Real, class Complex>
-    basic_plan<D, Real, Complex> &basic_plan<D, Real, Complex>::operator=(basic_plan &&other) noexcept {
-        basic_plan(std::move(other)).swap(*this);
-        return *this;
-    }
-
-    template<size_t D, class Real, class Complex>
     void basic_plan<D, Real, Complex>::operator()() const {
-        fftw_execute(plan);
+        fftw_execute(c_plan());
     }
 
     /// used for a static_assert inside an else block of if constexpr
@@ -187,9 +162,8 @@ namespace fftw {
         if (direction != FORWARD and direction != BACKWARD)
             throw std::invalid_argument("invalid direction");
 
-        basic_plan plan1;
-        plan1.plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
-        return plan1;
+        auto c_plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
+        return basic_plan{c_plan};
     }
 
     // TODO dedup
@@ -201,9 +175,8 @@ namespace fftw {
         if (direction != FORWARD and direction != BACKWARD)
             throw std::invalid_argument("invalid direction");
 
-        basic_plan plan1;
-        plan1.plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
-        return plan1;
+        auto c_plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
+        return basic_plan{c_plan};
     }
 
     template<size_t D, class Real, class Complex>
