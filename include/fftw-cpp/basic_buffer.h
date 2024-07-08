@@ -1,4 +1,7 @@
 #pragma once
+
+#include <memory>
+
 namespace fftw {
 
     template<class Real, class Complex = std::complex<Real>, bool IsReal = false>
@@ -40,13 +43,6 @@ namespace fftw {
         /// This constructor allocates the buffer and initializes all elements to value
         basic_buffer(size_t length, element_type value);
 
-        /// Deleted copy constructor to disable copying
-        basic_buffer(const basic_buffer &) = delete;
-
-        basic_buffer(basic_buffer &&other) noexcept; ///< Move constructor
-        basic_buffer &operator=(basic_buffer &&other) noexcept; ///< Move assignment
-        void swap(basic_buffer &other) noexcept;
-
         /// \defgroup Container methods (for range-for and other stdlib compatibility)
         /// @{
 
@@ -62,26 +58,19 @@ namespace fftw {
         const element_type &operator[](size_t index) const { return data()[index]; } ///<
         /// @}
 
-        [[nodiscard]] underlying_element_type *unwrap() { return storage; }
-
-        [[nodiscard]] const underlying_element_type *unwrap() const { return storage; }
-
-        ~basic_buffer();
+        [[nodiscard]] underlying_element_type *unwrap() { return storage.get(); } ///<
+        [[nodiscard]] const underlying_element_type *unwrap() const { return storage.get(); }
 
     private:
         size_t length{0};
-        underlying_element_type *storage{nullptr};
+        std::unique_ptr<underlying_element_type[], decltype(&fftw_free)> storage;
     };
 
     template<class Real, class Complex, bool IsReal>
-    basic_buffer<Real, Complex, IsReal>::basic_buffer(std::size_t length) :length(length) {
-        storage = reinterpret_cast<underlying_element_type *>(fftw_malloc(length * sizeof(underlying_element_type)));
-    }
-
-    template<class Real, class Complex, bool IsReal>
-    void basic_buffer<Real, Complex, IsReal>::swap(basic_buffer &other) noexcept {
-        std::swap(length, other.length);
-        std::swap(storage, other.storage);
+    basic_buffer<Real, Complex, IsReal>::basic_buffer(std::size_t length) :length(length),
+                                                                           storage(nullptr, &fftw_free) {
+        storage = {reinterpret_cast<underlying_element_type *>(fftw_malloc(length * sizeof(underlying_element_type))),
+                   &fftw_free};
     }
 
     template<class Real, class Complex, bool IsReal>
@@ -90,34 +79,15 @@ namespace fftw {
             elem = value;
         }
     }
-
-    template<class Real, class Complex, bool IsReal>
-    basic_buffer<Real, Complex, IsReal>::basic_buffer(basic_buffer &&other) noexcept {
-        other.swap(*this);
-    }
-
-    template<class Real, class Complex, bool IsReal>
-    basic_buffer<Real, Complex, IsReal> &basic_buffer<Real, Complex, IsReal>::operator=(basic_buffer &&other) noexcept {
-        basic_buffer(std::move(other)).swap(*this);
-        return *this;
-    }
-
-
-}
-
-template<class Real, class Complex, bool IsReal>
-fftw::basic_buffer<Real, Complex, IsReal>::~basic_buffer() {
-    if (storage) fftw_free(storage);
-    storage = nullptr;
 }
 
 template<class Real, class Complex, bool IsReal>
 auto fftw::basic_buffer<Real, Complex, IsReal>::data() -> element_type * {
-    return reinterpret_cast<element_type *>(storage);
+    return reinterpret_cast<element_type *>(storage.get());
 }
 
 template<class Real, class Complex, bool IsReal>
 auto
 fftw::basic_buffer<Real, Complex, IsReal>::data() const -> const element_type * {
-    return reinterpret_cast<const element_type *>(storage);
+    return reinterpret_cast<const element_type *>(storage.get());
 }
