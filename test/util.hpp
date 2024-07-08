@@ -29,7 +29,7 @@ MATCHER_P(ElementsAreComplexNear, buf_expected, "values near " + ::testing::Prin
     return true;
 }
 
-auto ElementsAreComplexNear(const fftw::buffer &buf_expected) {
+auto inline ElementsAreComplexNear(const fftw::buffer &buf_expected) {
     std::vector<std::complex<double>> buf_expected_data(buf_expected.size());
     std::ranges::copy(buf_expected, buf_expected_data.begin());
 
