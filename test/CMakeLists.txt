@@ -8,6 +8,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(fftw-cpp-tests
         test-1d-c2c.cpp
+        test-2d-r2c.cpp
 )
 
 target_link_libraries(fftw-cpp-tests fftw-cpp GTest::gmock_main)
