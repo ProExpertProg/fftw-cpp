@@ -13,7 +13,8 @@ MATCHER_P(IsComplexNear, val, "near " + ::testing::PrintToString(val)) {
     return true;
 }
 
-MATCHER_P(ElementsAreComplexNear, buf_expected, "values near " + ::testing::PrintToString(buf_expected)) {
+MATCHER_P(ElementsAreComplexNear, buf_expected,
+          "values near " + ::testing::PrintToString(buf_expected)) {
     if (arg.size() != buf_expected.size()) {
         *result_listener << "Vectors have different sizes";
         return false;
