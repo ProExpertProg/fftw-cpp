@@ -13,7 +13,7 @@ else ()
     find_library(FFTW3_LIBRARY NAMES fftw3)
 endif ()
 
-find_package_handle_standard_args(FFTW3 DEFAULT_MSG FFTW3_LIBRARIES FFTW3_INCLUDE_DIRS)
+find_package_handle_standard_args(FFTW3 DEFAULT_MSG FFTW3_LIBRARY FFTW3_INCLUDE_DIR)
 
 if (FFTW3_FOUND)
     # set the other output variables
