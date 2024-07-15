@@ -1,4 +1,4 @@
-name: Find FFTW
+name: Unit tests
 on:
   push:
     branches: [main]
