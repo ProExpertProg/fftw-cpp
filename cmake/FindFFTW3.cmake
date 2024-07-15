@@ -8,7 +8,7 @@ if (FFTW3_INCLUDE_DIR OR FFTW3_LIBRARY_DIR OR FFTW3_LIBRARY)
 
     if (NOT FFTW3_INCLUDE_DIR)
         assert(FFTW3_LIBRARY_DIR)
-        find_path(FFTW3_INCLUDE_DIR fftw3.h PATH_SUFFIXES fftw3 HINTS ${FFTW3_LIBRARY_DIR}/../include)
+        find_path(FFTW3_INCLUDE_DIR fftw3.h PATH_SUFFIXES fftw3 HINTS ${FFTW3_LIBRARY_DIR}/../include NO_DEFAULT_PATH)
     endif ()
 
     if (NOT FFTW3_LIBRARY)
@@ -18,7 +18,7 @@ if (FFTW3_INCLUDE_DIR OR FFTW3_LIBRARY_DIR OR FFTW3_LIBRARY)
             set(FFTW3_LIBRARY_DIR ${FFTW3_INCLUDE_DIR}/../lib)
         endif()
         # try to find based on library_dir
-        find_library(FFTW3_LIBRARY NAMES fftw3 HINTS ${FFTW3_LIBRARY_DIR})
+        find_library(FFTW3_LIBRARY NAMES fftw3 HINTS ${FFTW3_LIBRARY_DIR} NO_DEFAULT_PATH)
     endif ()
 else ()
     find_path(FFTW3_INCLUDE_DIR fftw3.h PATH_SUFFIXES fftw3)

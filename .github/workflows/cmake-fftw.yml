@@ -12,8 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
       - name: install
-        run: sudo apt update && sudo apt install build-essential ninja-build cmake  # TODO dependencies # lcov
-      - name: fftw-download # TODO: probably put in CMake
+        run: sudo apt update && sudo apt install build-essential ninja-build cmake
+      - name: fftw-download
         run: |
           wget https://www.fftw.org/fftw-3.3.10.tar.gz && tar -xf fftw-3.3.10.tar.gz
       - name: configure-fftw-local
