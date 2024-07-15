@@ -37,7 +37,7 @@ jobs:
         run: |
           cmake -S . -B cmake-build-lib -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY=`realpath ./fftw-install/lib/libfftw3.a`
           cmake --build cmake-build-lib
-      - name: run CMake (local, with prefix path)
+      - name: run CMake (local, with lib & include path)
         if: '!cancelled()'
         run: |
           cmake -S . -B cmake-build-path -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_LIBRARY_PATH=`realpath ./fftw-install/lib` -DCMAKE_INCLUDE_PATH=`realpath ./fftw-install/include`
@@ -59,8 +59,7 @@ jobs:
         run: |
           cmake -S . -B cmake-build-global -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON
           cmake --build cmake-build-global
-
-      # TODO probably not
+      # Run to make sure the executables are fine
       - name: run unit tests
         working-directory: ./cmake-build-global
         run: |
