@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 20) # TODO set to 23 if supported, but 20 is minimum for 
 # Add cmake directory to module path
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# Add fftw-cpp library
+add_library(fftw-cpp INTERFACE)
+
 # Pull in mdspan
 # TODO make optional (but required for tests)
 include(FetchContent)
@@ -16,50 +19,44 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(mdspan)
 
-# Find fftw3
-#find_package(FFTW3)
-#if (NOT FFTW3_FOUND)
-#    message(WARNING "FFTW3 not found, make sure fftw3 is available globally")
-#endif ()
-
 option(FFTW_CPP_USE_MKL "Use MKL for FFTW3" OFF) # TODO: add support for other FFTW3 backends
 if (FFTW_CPP_USE_MKL)
     message(FATAL_ERROR "MKL backend not supported yet")
 endif ()
 
-option(FFTW_CPP_DOWNLOAD_FFTW3 "Download FFTW3" OFF)
-
+option(FFTW_CPP_DOWNLOAD_FFTW3 "Download FFTW3 during the build step and link to it instead of using an installed version" OFF)
 if (FFTW_CPP_DOWNLOAD_FFTW3)
-    set(FFTW3_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/fftw3-install)
-#    file(MAKE_DIRECTORY ${FFTW3_INSTALL_PREFIX})
-
-    set(FFTW3_CONFIGURE_ARGS "")
-
+    message(STATUS "Downloading FFTW3")
+    set(_FFTW3_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/fftw3-install)
+    set(_FFTW3_CONFIGURE_ARGS "")
 
     option(FFTW_CPP_FFTW3_AVX512 ON)
     if (FFTW_CPP_FFTW3_AVX512)
-        set(FFTW3_CONFIGURE_ARGS "${FFTW3_CONFIGURE_ARGS} --enable-avx512")
+        set(_FFTW3_CONFIGURE_ARGS "${_FFTW3_CONFIGURE_ARGS} --enable-avx512")
     endif()
 
-    # TODO patch for CMake find_package?
     ExternalProject_Add(
-            fftw3
+            fftw3-download
             URL https://www.fftw.org/fftw-3.3.10.tar.gz
             URL_MD5 8ccbf6a5ea78a16dbc3e1306e234cc5c
-            CONFIGURE_COMMAND ./configure --prefix=${FFTW3_INSTALL_PREFIX} ${FFTW3_CONFIGURE_ARGS} CC=${CMAKE_C_COMPILER}
-            # build and install use make by default
+            CONFIGURE_COMMAND ./configure --prefix=${_FFTW3_INSTALL_PREFIX} ${_FFTW3_CONFIGURE_ARGS} CC=${CMAKE_C_COMPILER}
             BUILD_IN_SOURCE ON # required for configure to work
     )
 
-    # TODO set vars that tell the module FindFFTW3 where the library is
+    # Do not link directly, as the library file does not exist pre-download and
+    # so the ninja does not know the dependency.
+    target_include_directories(fftw-cpp INTERFACE ${_FFTW3_INSTALL_PREFIX}/include)
+    target_link_directories(fftw-cpp INTERFACE ${_FFTW3_INSTALL_PREFIX}/lib/)
+    target_link_libraries(fftw-cpp INTERFACE fftw3)
+    add_dependencies(fftw-cpp fftw3-download)
+else ()
+    # Config mode is broken for autotools-build fftw version<=3.3.10
+    find_package(FFTW3 MODULE REQUIRED)
+    target_link_libraries(fftw-cpp INTERFACE FFTW3::fftw3)
 endif ()
 
-# Config mode is broken for autotools-build fftw version<=3.3.10
-find_package(FFTW3 MODULE REQUIRED)
-
-add_library(fftw-cpp INTERFACE)
-target_link_libraries(fftw-cpp INTERFACE ${FFTW3_LIBRARIES} m mdspan)
-target_include_directories(fftw-cpp INTERFACE include/ ${FFTW3_INCLUDE_DIRS})
+target_link_libraries(fftw-cpp INTERFACE mdspan)
+target_include_directories(fftw-cpp INTERFACE include/)
 
 option(FFTW_CPP_BUILD_TESTS "Build tests" ON)
 if (FFTW_CPP_BUILD_TESTS)

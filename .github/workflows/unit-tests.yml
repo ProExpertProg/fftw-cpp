@@ -1,0 +1,24 @@
+name: Find FFTW
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+      - name: install
+        run: sudo apt update && sudo apt install build-essential ninja-build cmake
+      - name: configure
+        run: |
+          cmake -S . -B cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON \
+          -DFFTW_CPP_DOWNLOAD_FFTW3=ON 
+          cmake --build cmake-build
+      - name: run unit tests
+        working-directory: ./cmake-build
+        run: |
+          ctest --output-on-failure
