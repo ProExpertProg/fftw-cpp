@@ -44,6 +44,7 @@ if (FFTW3_FOUND)
 
     # Create imported target FFTW3::fftw3
     add_library(FFTW3::fftw3 STATIC IMPORTED)
+    set_target_properties(FFTW3::fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW3_LIBRARY})
     target_link_libraries(FFTW3::fftw3 INTERFACE ${FFTW3_LIBRARIES})
     target_include_directories(FFTW3::fftw3 INTERFACE ${FFTW3_INCLUDE_DIRS})
 endif ()
