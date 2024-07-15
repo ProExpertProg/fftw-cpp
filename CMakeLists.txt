@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20) # TODO arbitrary, need to test, might need 
 project(fftw-cpp VERSION 0.0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20) # TODO set to 23 if supported, but 20 is minimum for now. Can add support for more later
 
+# Add cmake directory to module path
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Pull in mdspan
 # TODO make optional (but required for tests)
 include(FetchContent)
@@ -51,9 +54,8 @@ if (FFTW_CPP_DOWNLOAD_FFTW3)
     # TODO set vars that tell the module FindFFTW3 where the library is
 endif ()
 
-# TODO move into FindFFTW3.cmake
-find_path(FFTW3_INCLUDE_DIRS fftw3.h PATH_SUFFIXES fftw3)
-find_library(FFTW3_LIBRARIES NAMES fftw3)
+# Config mode is broken for autotools-build fftw version<=3.3.10
+find_package(FFTW3 MODULE REQUIRED)
 
 add_library(fftw-cpp INTERFACE)
 target_link_libraries(fftw-cpp INTERFACE ${FFTW3_LIBRARIES} m mdspan)
