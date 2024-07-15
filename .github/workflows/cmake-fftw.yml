@@ -27,12 +27,17 @@ jobs:
         run: |
           cmake -S . -B cmake-build-inc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_INCLUDE_DIR=`realpath ./fftw-install/include`
           cmake --build cmake-build-inc
+      - name: run CMake (local, with FFTW3_LIBRARY_DIR)
+        if: '!cancelled()'
+        run: |
+          cmake -S . -B cmake-build-dir -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY_DIR=`realpath ./fftw-install/lib`
+          cmake --build cmake-build-dir
       - name: run CMake (local, with FFTW3_LIBRARY)
         if: '!cancelled()'
         run: |
           cmake -S . -B cmake-build-lib -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY=`realpath ./fftw-install/lib/libfftw3.a`
           cmake --build cmake-build-lib
-      - name: run CMake (local, with specifying paths)
+      - name: run CMake (local, with prefix path)
         if: '!cancelled()'
         run: |
           cmake -S . -B cmake-build-path -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_LIBRARY_PATH=`realpath ./fftw-install/lib` -DCMAKE_INCLUDE_PATH=`realpath ./fftw-install/include`
@@ -50,6 +55,7 @@ jobs:
         run: |
           ./configure && make && sudo make install
       - name: run CMake (global)
+        if: '!cancelled()'
         run: |
           cmake -S . -B cmake-build-global -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON
           cmake --build cmake-build-global
