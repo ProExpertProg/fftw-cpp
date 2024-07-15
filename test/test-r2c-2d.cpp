@@ -3,7 +3,6 @@
 #include <iostream>
 #include <numbers>
 
-
 void print(const auto &arr) {
     for (int j = 0; j < arr.extent(0); ++j) {
         for (int k = 0; k < arr.extent(1); ++k) {
@@ -27,7 +26,8 @@ int main() {
 
     std::size_t N = 4, M = 6, NK = 3;
     using d2 = stdex::dextents<std::size_t, 2u>;
-    fftw::basic_rmdbuffer<double, d2, std::complex<double>, stdex::layout_left> in{N, M}, out2{N, M};
+    fftw::basic_rmdbuffer<double, d2, std::complex<double>, stdex::layout_left> in{N, M},
+        out2{N, M};
     fftw::basic_mdbuffer<double, d2, std::complex<double>, stdex::layout_left> out{NK, M};
 
     auto p = fftw::plan_r2c<2u>::dft(in.to_mdspan(), out.to_mdspan(), fftw::Flags::ESTIMATE);
@@ -35,7 +35,8 @@ int main() {
 
     for (int j = 0; j < in.extent(0); ++j) {
         for (int k = 0; k < in.extent(1); ++k) {
-            in(j, k) = std::cos(2.0 * std::numbers::pi * double((j + 1) * k) / (2.0 * double(in.size())));
+            in(j, k) =
+                std::cos(2.0 * std::numbers::pi * double((j + 1) * k) / (2.0 * double(in.size())));
         }
     }
 

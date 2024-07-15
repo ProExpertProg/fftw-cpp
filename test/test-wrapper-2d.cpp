@@ -24,10 +24,9 @@ int main() {
 
     for (int j = 0; j < in.extent(0); ++j) {
         for (int k = 0; k < in.extent(1); ++k) {
-            in(j, k) = {
-                    std::cos(2.0 * std::numbers::pi * double(j * k) / (2.0 * in.size())),
-                    std::cos(2.0 * std::numbers::pi * double(j * k + in.size() / 2) / (2.0 * in.size()))
-            };
+            in(j, k) = {std::cos(2.0 * std::numbers::pi * double(j * k) / (2.0 * in.size())),
+                        std::cos(2.0 * std::numbers::pi * double(j * k + in.size() / 2) /
+                                 (2.0 * in.size()))};
         }
     }
 
