@@ -55,7 +55,16 @@ if (FFTW3_FOUND)
     set(FFTW3_LIBRARIES ${FFTW3_LIBRARY})
 
     # Create imported target FFTW3::fftw3
-    add_library(FFTW3::fftw3 STATIC IMPORTED)
+    # First, check library type
+    set(STR_MATCH_REGEX ".*${CMAKE_STATIC_LIBRARY_SUFFIX}$")
+    if (FFTW3_LIBRARY MATCHES ${STR_MATCH_REGEX})
+        add_library(FFTW3::fftw3 STATIC IMPORTED)
+        message(STATUS "Found static FFTW3 library")
+    else ()
+        add_library(FFTW3::fftw3 SHARED IMPORTED)
+        message(STATUS "Found shared FFTW3 library")
+    endif ()
+
     set_target_properties(FFTW3::fftw3 PROPERTIES IMPORTED_LOCATION ${FFTW3_LIBRARY})
     target_include_directories(FFTW3::fftw3 INTERFACE ${FFTW3_INCLUDE_DIRS})
 

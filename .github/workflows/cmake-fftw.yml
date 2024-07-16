@@ -20,6 +20,10 @@ jobs:
         working-directory: ./fftw-3.3.10
         run: |
           ./configure --prefix=`realpath ../fftw-install` && make && make install
+      - name: configure-fftw-local-shared
+        working-directory: ./fftw-3.3.10
+        run: |
+          ./configure --prefix=`realpath ../fftw-install-shared` --enable-shared && make && make install
 
       # remaining steps invoke CMake in various ways to test all installation pathways
       # they all run even if the previous ones fail
@@ -47,7 +51,12 @@ jobs:
         run: |
           cmake -S . -B cmake-build-prefix -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install`
           cmake --build cmake-build-prefix
-
+      # shared library
+      - name: run CMake (local, with shared lib & prefix)
+        if: '!cancelled()'
+        run: |
+          cmake -S . -B cmake-build-shared -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install-shared`
+          cmake --build cmake-build-shared
       # global installation
       - name: configure-fftw-global
         working-directory: ./fftw-3.3.10
@@ -62,5 +71,9 @@ jobs:
       # Run to make sure the executables are fine
       - name: run unit tests
         working-directory: ./cmake-build-global
+        run: |
+          ctest --verbose
+      - name: run unit tests (shared)
+        working-directory: ./cmake-build-shared
         run: |
           ctest --verbose
