@@ -7,14 +7,12 @@ if (FFTW3_INCLUDE_DIR OR FFTW3_LIBRARY_DIR OR FFTW3_LIBRARY)
     endif ()
 
     if (NOT FFTW3_INCLUDE_DIR)
-#        assert(FFTW3_LIBRARY_DIR)
         find_path(FFTW3_INCLUDE_DIR fftw3.h PATH_SUFFIXES fftw3 HINTS ${FFTW3_LIBRARY_DIR}/../include NO_DEFAULT_PATH)
     endif ()
 
     if (NOT FFTW3_LIBRARY)
         if (NOT FFTW3_LIBRARY_DIR)
             # try to find based on include path
-#            assert(FFTW3_INCLUDE_DIR)
             set(FFTW3_LIBRARY_DIR ${FFTW3_INCLUDE_DIR}/../lib)
         endif()
         # try to find based on library_dir

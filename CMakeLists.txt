@@ -35,6 +35,7 @@ if (FFTW_CPP_DOWNLOAD_FFTW3)
         set(_FFTW3_CONFIGURE_ARGS "${_FFTW3_CONFIGURE_ARGS} --enable-avx512")
     endif()
 
+    # This happens at build time, so we can't use find_package
     ExternalProject_Add(
             fftw3-download
             URL https://www.fftw.org/fftw-3.3.10.tar.gz
@@ -44,11 +45,15 @@ if (FFTW_CPP_DOWNLOAD_FFTW3)
     )
 
     # Do not link directly, as the library file does not exist pre-download and
-    # so the ninja does not know the dependency.
+    # so the build system (e.g. ninja) does not know the dependency.
     target_include_directories(fftw-cpp INTERFACE ${_FFTW3_INSTALL_PREFIX}/include)
     target_link_directories(fftw-cpp INTERFACE ${_FFTW3_INSTALL_PREFIX}/lib/)
     target_link_libraries(fftw-cpp INTERFACE fftw3)
     add_dependencies(fftw-cpp fftw3-download)
+
+    if (UNIX)
+        target_link_libraries(fftw-cpp INTERFACE m)
+    endif ()
 else ()
     # Config mode is broken for autotools-build fftw version<=3.3.10
     find_package(FFTW3 MODULE REQUIRED)
