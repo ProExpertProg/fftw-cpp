@@ -16,14 +16,14 @@ jobs:
       - name: fftw-download
         run: |
           wget https://www.fftw.org/fftw-3.3.10.tar.gz && tar -xf fftw-3.3.10.tar.gz
+      - name: copy-fftw
+        run: |
+          cp -r fftw-3.3.10 fftw-3.3.10-shared
+          cp -r fftw-3.3.10 fftw-3.3.10-global
       - name: configure-fftw-local
         working-directory: ./fftw-3.3.10
         run: |
           ./configure --prefix=`realpath ../fftw-install` && make && make install
-      - name: configure-fftw-local-shared
-        working-directory: ./fftw-3.3.10
-        run: |
-          ./configure --prefix=`realpath ../fftw-install-shared` --enable-shared && make && make install
 
       # remaining steps invoke CMake in various ways to test all installation pathways
       # they all run even if the previous ones fail
@@ -51,15 +51,21 @@ jobs:
         run: |
           cmake -S . -B cmake-build-prefix -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install`
           cmake --build cmake-build-prefix
+
       # shared library
+      - name: configure-fftw-local-shared
+        working-directory: ./fftw-3.3.10-shared
+        run: |
+          ./configure --prefix=`realpath ../fftw-install-shared` --enable-shared && make && make install
       - name: run CMake (local, with shared lib & prefix)
         if: '!cancelled()'
         run: |
           cmake -S . -B cmake-build-shared -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install-shared`
           cmake --build cmake-build-shared
+
       # global installation
       - name: configure-fftw-global
-        working-directory: ./fftw-3.3.10
+        working-directory: ./fftw-3.3.10-global
         if: '!cancelled()'
         run: |
           ./configure && make && sudo make install
@@ -68,6 +74,7 @@ jobs:
         run: |
           cmake -S . -B cmake-build-global -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON
           cmake --build cmake-build-global
+
       # Run to make sure the executables are fine
       - name: run unit tests
         working-directory: ./cmake-build-global
