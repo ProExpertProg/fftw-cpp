@@ -1,6 +1,27 @@
+# Options (default value in parenthesis):
+# - FFTW_CPP_BUILD_TESTS   (OFF): Build unit tests
+# - FFTW_CPP_BUILD_EXAMPLES (ON): Build examples
+# - FFTW_CPP_MDSPAN         (ON): Pull in mdspan dependency
+# - FFTW_CPP_USE_MKL       (OFF): Use MKL for FFTW3 (not supported yet)
+# Options controlling FFT3 download
+# - FFTW_CPP_FFTW3_DOWNLOAD       (OFF): Download FFTW3 during the build step and link to it instead of using an installed version
+# - FFTW_CPP_FFTW3_AVX512          (ON): Enable AVX512 for FFTW3 (if downloaded)
+# - FFTW_CPP_FFTW3_CONFIGURE_FLAGS (""): Extra flags to pass to downloaded FFTW3 configure script
+
 cmake_minimum_required(VERSION 3.20) # TODO arbitrary, need to test, might need to drop later
 project(fftw-cpp VERSION 0.0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20) # TODO set to 23 if supported, but 20 is minimum for now. Can add support for more later
+
+# Options
+option(FFTW_CPP_BUILD_TESTS "Build tests" ON)
+option(FFTW_CPP_BUILD_EXAMPLES "Build examples" ON)
+# if this becomes OFF by default, make sure mdspan gets included when tests or examples are enabled.
+option(FFTW_CPP_MDSPAN "Pull in mdspan dependency" ON)
+option(FFTW_CPP_USE_MKL "Use MKL for FFTW3" OFF) # TODO: add support for other FFTW3 backends
+
+option(FFTW_CPP_DOWNLOAD_FFTW3 "Download FFTW3 during the build step and link to it instead of using an installed version" OFF)
+option(FFTW_CPP_FFTW3_AVX512 ON)
+set(FFTW_CPP_FFTW3_CONFIGURE_FLAGS "" CACHE STRING "Extra flags to pass to downloaded FFTW3 configure script")
 
 # Add cmake directory to module path
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -8,8 +29,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Add fftw-cpp library
 add_library(fftw-cpp INTERFACE)
 
-# Pull in mdspan
-# TODO make optional (but required for tests)
+# DEPENDENCIES
 include(FetchContent)
 include(ExternalProject)
 FetchContent_Declare(
@@ -17,20 +37,21 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/kokkos/mdspan.git
         GIT_TAG 9ceface91483775a6c74d06ebf717bbb2768452f # TODO: update to latest (fix dextents and dynamic_extent)
 )
-FetchContent_MakeAvailable(mdspan)
 
-option(FFTW_CPP_USE_MKL "Use MKL for FFTW3" OFF) # TODO: add support for other FFTW3 backends
+if (FFTW_CPP_MDSPAN)
+    FetchContent_MakeAvailable(mdspan)
+    target_link_libraries(fftw-cpp INTERFACE mdspan)
+endif ()
+
 if (FFTW_CPP_USE_MKL)
     message(FATAL_ERROR "MKL backend not supported yet")
 endif ()
 
-option(FFTW_CPP_DOWNLOAD_FFTW3 "Download FFTW3 during the build step and link to it instead of using an installed version" OFF)
 if (FFTW_CPP_DOWNLOAD_FFTW3)
     message(STATUS "Downloading FFTW3")
     set(_FFTW3_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/fftw3-install)
-    set(_FFTW3_CONFIGURE_ARGS "")
+    set(_FFTW3_CONFIGURE_ARGS ${FFTW_CPP_FFTW3_CONFIGURE_FLAGS})
 
-    option(FFTW_CPP_FFTW3_AVX512 ON)
     if (FFTW_CPP_FFTW3_AVX512)
         set(_FFTW3_CONFIGURE_ARGS "${_FFTW3_CONFIGURE_ARGS} --enable-avx512")
     endif()
@@ -60,16 +81,13 @@ else ()
     target_link_libraries(fftw-cpp INTERFACE FFTW3::fftw3)
 endif ()
 
-target_link_libraries(fftw-cpp INTERFACE mdspan)
 target_include_directories(fftw-cpp INTERFACE include/)
 
-option(FFTW_CPP_BUILD_TESTS "Build tests" ON)
 if (FFTW_CPP_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
 endif ()
 
-option(FFTW_CPP_BUILD_EXAMPLES "Build examples" ON)
 if (FFTW_CPP_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif ()
