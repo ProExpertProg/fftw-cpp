@@ -29,28 +29,31 @@ jobs:
       # they all run even if the previous ones fail
       - name: run CMake (local, with FFTW3_INCLUDE_DIR)
         run: |
-          cmake -S . -B cmake-build-inc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_INCLUDE_DIR=`realpath ./fftw-install/include`
+          cmake -S . -B cmake-build-inc -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_INCLUDE_DIR=`realpath ./fftw-install/include` | tee -a cmake-output.log 
           cmake --build cmake-build-inc
       - name: run CMake (local, with FFTW3_LIBRARY_DIR)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-dir -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY_DIR=`realpath ./fftw-install/lib`
+          cmake -S . -B cmake-build-dir -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY_DIR=`realpath ./fftw-install/lib` | tee -a cmake-output.log
           cmake --build cmake-build-dir
       - name: run CMake (local, with FFTW3_LIBRARY)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-lib -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY=`realpath ./fftw-install/lib/libfftw3.a`
+          cmake -S . -B cmake-build-lib -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DFFTW3_LIBRARY=`realpath ./fftw-install/lib/libfftw3.a` | tee -a cmake-output.log
           cmake --build cmake-build-lib
       - name: run CMake (local, with lib & include path)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-path -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_LIBRARY_PATH=`realpath ./fftw-install/lib` -DCMAKE_INCLUDE_PATH=`realpath ./fftw-install/include`
+          cmake -S . -B cmake-build-path -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_LIBRARY_PATH=`realpath ./fftw-install/lib` -DCMAKE_INCLUDE_PATH=`realpath ./fftw-install/include` | tee -a cmake-output.log
           cmake --build cmake-build-path
       - name: run CMake (local, with prefix path)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-prefix -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install`
+          cmake -S . -B cmake-build-prefix -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install` | tee -a cmake-output.log
           cmake --build cmake-build-prefix
+      - name: check static library was found
+        run: |
+          test $(grep "Found static FFTW3 library" cmake-output.log | wc -l) -eq 5
 
       # shared library
       - name: configure-fftw-local-shared
@@ -60,8 +63,11 @@ jobs:
       - name: run CMake (local, with shared lib & prefix)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-shared -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install-shared`
+          cmake -S . -B cmake-build-shared -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON -DCMAKE_PREFIX_PATH=`realpath ./fftw-install-shared` | tee cmake-output.log
           cmake --build cmake-build-shared
+      - name: check static library was found
+        run: |
+          test $(grep "Found shared FFTW3 library" cmake-output.log | wc -l) -eq 1
 
       # global installation
       - name: configure-fftw-global
@@ -72,8 +78,11 @@ jobs:
       - name: run CMake (global)
         if: '!cancelled()'
         run: |
-          cmake -S . -B cmake-build-global -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON
+          cmake -S . -B cmake-build-global -G Ninja -DCMAKE_BUILD_TYPE=Debug -DFFTW_CPP_BUILD_TESTS=ON | tee cmake-output.log
           cmake --build cmake-build-global
+      - name: check static library was found
+        run: |
+          test $(grep "Found static FFTW3 library" cmake-output.log | wc -l) -eq 1
 
       # Run to make sure the executables are fine
       - name: run unit tests
