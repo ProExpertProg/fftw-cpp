@@ -22,3 +22,12 @@ jobs:
         working-directory: ./cmake-build
         run: |
           ctest --output-on-failure
+      - name: configure release
+        run: |
+          cmake -S . -B cmake-build-release -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          -DFFTW_CPP_BUILD_TESTS=ON -DFFTW_CPP_DOWNLOAD_FFTW3=ON 
+          cmake --build cmake-build-release
+      - name: run unit tests (release)
+        working-directory: ./cmake-build-release
+        run: |
+          ctest --output-on-failure
