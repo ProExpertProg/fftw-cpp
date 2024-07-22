@@ -6,10 +6,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
-add_executable(fftw-cpp-tests
-        test-1d-c2c.cpp
-        test-2d-r2c.cpp
-)
+function(add_fftw_test_impl NAME)
+    add_executable(${NAME} ${ARGN})
+    target_link_libraries(${NAME} fftw-cpp GTest::gmock_main)
+    add_test(${NAME} ${NAME})
+endfunction()
 
-target_link_libraries(fftw-cpp-tests fftw-cpp GTest::gmock_main)
-add_test(fftw-cpp-all-tests fftw-cpp-tests)
+function(add_fftw_test FILE)
+    string(REGEX REPLACE ".cpp$" "" NAME ${FILE})
+    add_fftw_test_impl(${NAME} ${FILE} ${ARGN})
+endfunction()
+
+add_fftw_test(test-1d-c2c.cpp)
+add_fftw_test(test-2d-r2c.cpp)
