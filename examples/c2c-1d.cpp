@@ -1,10 +1,10 @@
 #include <fftw-cpp/fftw-cpp.h>
 
+#include <cassert>
 #include <complex>
 #include <fftw3.h>
-#include <numbers>
 #include <iostream>
-#include <cassert>
+#include <numbers>
 
 void print(fftw::buffer const &buf) {
     for (int i = 0; i < buf.size(); ++i) {
@@ -20,10 +20,8 @@ void run_fftw_cpp(int N) {
     auto pInv = fftw::plan<>::dft(out, out2, fftw::BACKWARD, fftw::Flags::ESTIMATE);
 
     for (int j = 0; j < N; ++j) {
-        in[j] = {
-                std::cos(2.0 * std::numbers::pi * j / N),
-                std::cos(2.0 * std::numbers::pi * (j + double(N) / 2) / N)
-        };
+        in[j] = {std::cos(2.0 * std::numbers::pi * j / N),
+                 std::cos(2.0 * std::numbers::pi * (j + double(N) / 2) / N)};
     }
 
     p();
@@ -33,14 +31,14 @@ void run_fftw_cpp(int N) {
     print(out);
     print(out2);
 
-    for (auto elem: out2) {
+    for (auto elem : out2) {
         std::cout << elem / double(N) << " ";
     }
 }
 
 void print(const fftw_complex *arr, int N) {
     for (int i = 0; i < N; ++i) {
-        std::cout << "("<<arr[i][0] << "," << arr[i][1] << ") ";
+        std::cout << "(" << arr[i][0] << "," << arr[i][1] << ") ";
     }
     std::cout << std::endl;
 }
@@ -49,9 +47,9 @@ void run_fftw(int N) {
     fftw_complex *in, *out, *out2;
     fftw_plan p;
 
-    in = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N);
-    out = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N);
-    out2 = (fftw_complex *) fftw_malloc(sizeof(fftw_complex) * N);
+    in = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+    out = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
+    out2 = (fftw_complex *)fftw_malloc(sizeof(fftw_complex) * N);
     assert(in != nullptr and out != nullptr and out2 != nullptr);
 
     p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
