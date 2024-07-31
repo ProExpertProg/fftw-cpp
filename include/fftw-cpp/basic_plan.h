@@ -19,6 +19,9 @@ template <size_t D, class Real, class Complex> class plan_base {
 
     /// Returns the underlying FFTW plan.
     plan_t c_plan() const { return plan.get(); }
+
+    /// Executes the plan with the buffers provided initially.
+    void operator()() const { fftw_execute(c_plan()); };
 };
 
 /// This concept checks that the layout is appropriate for this type of plan.
@@ -77,9 +80,7 @@ class basic_plan : public plan_base<D, Real, Complex> {
 
     using base::c_plan;
     using base::plan_base;
-
-    /// Executes the plan with the buffers provided initially.
-    void operator()() const;
+    using base::operator();
 
     template <typename BufferIn, typename BufferOut>
         requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
@@ -99,10 +100,6 @@ class basic_plan : public plan_base<D, Real, Complex> {
     static auto dft(ViewIn in, ViewOut out, Direction direction, Flags flags) -> basic_plan;
 };
 
-template <size_t D, class Real, class Complex>
-void basic_plan<D, Real, Complex>::operator()() const {
-    fftw_execute(c_plan());
-}
 
 /// used for a static_assert inside an else block of if constexpr
 template <class...> inline constexpr bool always_false = false;
@@ -207,9 +204,7 @@ class basic_plan_r2c : public plan_base<D, Real, Complex> {
 
     using base::c_plan;
     using base::plan_base;
-
-    /// Executes the plan with the buffers provided initially.
-    void operator()() const;
+    using base::operator();
 
     template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
 
@@ -230,9 +225,7 @@ class basic_plan_c2r : public plan_base<D, Real, Complex> {
 
     using base::c_plan;
     using base::plan_base;
-
-    /// Executes the plan with the buffers provided initially.
-    void operator()() const;
+    using base::operator();
 
     template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
 
@@ -242,20 +235,10 @@ class basic_plan_c2r : public plan_base<D, Real, Complex> {
 };
 
 template <size_t D, class Real, class Complex>
-void basic_plan_r2c<D, Real, Complex>::operator()() const {
-    fftw_execute(c_plan());
-}
-
-template <size_t D, class Real, class Complex>
 template <typename ViewIn, typename ViewOut>
 void basic_plan_r2c<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
     fftw_execute_dft_r2c(c_plan(), detail::unwrap<true, Real, Complex>(in),
                          detail::unwrap<false, Real, Complex>(out));
-}
-
-template <size_t D, class Real, class Complex>
-void basic_plan_c2r<D, Real, Complex>::operator()() const {
-    fftw_execute(c_plan());
 }
 
 template <size_t D, class Real, class Complex>
