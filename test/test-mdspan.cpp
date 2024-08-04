@@ -26,9 +26,9 @@ int main() {
         return stdex::submdspan(buf.to_mdspan(), index, stdex::full_extent, stdex::full_extent);
     };
 
-    auto p = fftw::plan<2u>::dft(slice(in, 0), slice(out, 0), fftw::FORWARD, fftw::Flags::ESTIMATE);
+    auto p = fftw::plan<2u>(slice(in, 0), slice(out, 0), fftw::FORWARD, fftw::Flags::ESTIMATE);
     auto pInv =
-        fftw::plan<2u>::dft(slice(out, 0), slice(out2, 0), fftw::BACKWARD, fftw::Flags::ESTIMATE);
+        fftw::plan<2u>(slice(out, 0), slice(out2, 0), fftw::BACKWARD, fftw::Flags::ESTIMATE);
 
     for (int i = 0; i < in.extent(0); ++i) {
         for (int j = 0; j < in.extent(1); ++j) {

@@ -30,8 +30,8 @@ int main() {
         out2{N, M};
     fftw::basic_mdbuffer<double, d2, std::complex<double>, stdex::layout_left> out{NK, M};
 
-    auto p = fftw::plan_r2c<2u>::dft(in.to_mdspan(), out.to_mdspan(), fftw::Flags::ESTIMATE);
-    auto pInv = fftw::plan_c2r<2u>::dft(out.to_mdspan(), out2.to_mdspan(), fftw::Flags::ESTIMATE);
+    auto p = fftw::plan_r2c<2u>(in.to_mdspan(), out.to_mdspan(), fftw::Flags::ESTIMATE);
+    auto pInv = fftw::plan_c2r<2u>(out.to_mdspan(), out2.to_mdspan(), fftw::Flags::ESTIMATE);
 
     for (int j = 0; j < in.extent(0); ++j) {
         for (int k = 0; k < in.extent(1); ++k) {

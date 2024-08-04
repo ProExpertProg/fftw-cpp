@@ -16,8 +16,8 @@ void print(fftw::buffer const &buf) {
 void run_fftw_cpp(int N) {
     fftw::buffer in(N), out(N), out2(N);
 
-    auto p = fftw::plan<>::dft(in, out, fftw::FORWARD, fftw::Flags::ESTIMATE);
-    auto pInv = fftw::plan<>::dft(out, out2, fftw::BACKWARD, fftw::Flags::ESTIMATE);
+    auto p = fftw::plan<>(in, out, fftw::FORWARD, fftw::Flags::ESTIMATE);
+    auto pInv = fftw::plan<>(out, out2, fftw::BACKWARD, fftw::Flags::ESTIMATE);
 
     for (int j = 0; j < N; ++j) {
         in[j] = {std::cos(2.0 * std::numbers::pi * j / N),

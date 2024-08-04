@@ -68,42 +68,6 @@ template <size_t D, class Real, class Complex, typename T, typename T2>
 concept appropriate_views =
     appropriate_view<D, Real, Complex, T> && appropriate_view<D, Real, Complex, T2>;
 
-template <size_t D, class Real, class Complex = std::complex<Real>>
-class basic_plan : public plan_base<D, Real, Complex> {
-  private:
-    using base = plan_base<D, Real, Complex>;
-    using plan_t = typename base::plan_t;
-
-  public:
-    using real_t = Real;
-    using complex_t = Complex;
-
-    using base::c_plan;
-    using base::plan_base;
-    using base::operator();
-
-    template <typename BufferIn, typename BufferOut>
-        requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
-    void operator()(BufferIn &in, BufferOut &out) const;
-
-    template <typename ViewIn, typename ViewOut>
-        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
-    void operator()(ViewIn in, ViewOut out) const;
-
-    /// \defgroup{planning utilities}
-    template <typename BufferIn, typename BufferOut>
-        requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
-    static auto dft(BufferIn &in, BufferOut &out, Direction direction, Flags flags) -> basic_plan;
-
-    template <typename ViewIn, typename ViewOut>
-        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
-    static auto dft(ViewIn in, ViewOut out, Direction direction, Flags flags) -> basic_plan;
-};
-
-
-/// used for a static_assert inside an else block of if constexpr
-template <class...> inline constexpr bool always_false = false;
-
 namespace detail {
 
 template <bool IsReal, class Real, class Complex>
@@ -147,6 +111,52 @@ auto plan_dft(auto &in, auto &out, Direction direction, Flags flags) {
 }
 } // namespace detail
 
+template <size_t D, class Real, class Complex = std::complex<Real>>
+class basic_plan : public plan_base<D, Real, Complex> {
+  private:
+    using base = plan_base<D, Real, Complex>;
+    using plan_t = typename base::plan_t;
+
+  public:
+    using real_t = Real;
+    using complex_t = Complex;
+
+    using base::c_plan;
+    using base::plan_base;
+    using base::operator();
+
+    template <typename BufferIn, typename BufferOut>
+        requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
+    basic_plan(BufferIn &in, BufferOut &out, Direction direction, Flags flags)
+        : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
+        if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
+        if (direction != FORWARD and direction != BACKWARD) {
+            throw std::invalid_argument("invalid direction");
+        }
+    }
+
+    template <typename ViewIn, typename ViewOut>
+        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
+    basic_plan(ViewIn in, ViewOut out, Direction direction, Flags flags)
+        : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
+        if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
+        if (direction != FORWARD and direction != BACKWARD) {
+            throw std::invalid_argument("invalid direction");
+        }
+    }
+
+    template <typename BufferIn, typename BufferOut>
+        requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
+    void operator()(BufferIn &in, BufferOut &out) const;
+
+    template <typename ViewIn, typename ViewOut>
+        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
+    void operator()(ViewIn in, ViewOut out) const;
+};
+
+/// used for a static_assert inside an else block of if constexpr
+template <class...> inline constexpr bool always_false = false;
+
 template <size_t D, class Real, class Complex>
 template <typename BufferIn, typename BufferOut>
     requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
@@ -161,91 +171,6 @@ template <typename ViewIn, typename ViewOut>
 void basic_plan<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
     fftw_execute_dft(c_plan(), detail::unwrap<false, Real, Complex>(in),
                      detail::unwrap<false, Real, Complex>(out));
-}
-
-template <size_t D, class Real, class Complex>
-template <typename BufferIn, typename BufferOut>
-    requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
-auto basic_plan<D, Real, Complex>::dft(BufferIn &in, BufferOut &out, Direction direction,
-                                       Flags flags) -> basic_plan {
-    if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
-    if (direction != FORWARD and direction != BACKWARD) {
-        throw std::invalid_argument("invalid direction");
-    }
-
-    auto c_plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
-    return basic_plan{c_plan};
-}
-
-// TODO dedup
-template <size_t D, class Real, class Complex>
-template <typename ViewIn, typename ViewOut>
-    requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
-auto basic_plan<D, Real, Complex>::dft(ViewIn in, ViewOut out, Direction direction, Flags flags)
-    -> basic_plan {
-    if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
-    if (direction != FORWARD and direction != BACKWARD) {
-        throw std::invalid_argument("invalid direction");
-    }
-
-    auto c_plan = detail::template plan_dft<D, Real, Complex>(in, out, direction, flags);
-    return basic_plan{c_plan};
-}
-
-template <size_t D, class Real, class Complex = std::complex<Real>>
-class basic_plan_r2c : public plan_base<D, Real, Complex> {
-  private:
-    using base = plan_base<D, Real, Complex>;
-    using plan_t = typename base::plan_t;
-
-  public:
-    using real_t = Real;
-    using complex_t = Complex;
-
-    using base::c_plan;
-    using base::plan_base;
-    using base::operator();
-
-    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
-
-    /// \defgroup{planning utilities}
-    template <typename ViewIn, typename ViewOut>
-    static auto dft(ViewIn in, ViewOut out, Flags flags) -> basic_plan_r2c;
-};
-
-template <size_t D, class Real, class Complex = std::complex<Real>>
-class basic_plan_c2r : public plan_base<D, Real, Complex> {
-  private:
-    using base = plan_base<D, Real, Complex>;
-    using plan_t = typename base::plan_t;
-
-  public:
-    using real_t = Real;
-    using complex_t = Complex;
-
-    using base::c_plan;
-    using base::plan_base;
-    using base::operator();
-
-    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
-
-    /// \defgroup{planning utilities}
-    template <typename ViewIn, typename ViewOut>
-    static auto dft(ViewIn in, ViewOut out, Flags flags) -> basic_plan_c2r;
-};
-
-template <size_t D, class Real, class Complex>
-template <typename ViewIn, typename ViewOut>
-void basic_plan_r2c<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
-    fftw_execute_dft_r2c(c_plan(), detail::unwrap<true, Real, Complex>(in),
-                         detail::unwrap<false, Real, Complex>(out));
-}
-
-template <size_t D, class Real, class Complex>
-template <typename ViewIn, typename ViewOut>
-void basic_plan_c2r<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
-    fftw_execute_dft_c2r(c_plan(), detail::unwrap<false, Real, Complex>(in),
-                         detail::unwrap<true, Real, Complex>(out));
 }
 
 namespace detail {
@@ -332,20 +257,60 @@ auto plan_dft_c2r(auto in, auto out, Flags flags) {
 }
 } // namespace detail
 
+template <size_t D, class Real, class Complex = std::complex<Real>>
+class basic_plan_r2c : public plan_base<D, Real, Complex> {
+  private:
+    using base = plan_base<D, Real, Complex>;
+    using plan_t = typename base::plan_t;
+
+  public:
+    using real_t = Real;
+    using complex_t = Complex;
+
+    using base::c_plan;
+    using base::plan_base;
+    using base::operator();
+
+    template <typename ViewIn, typename ViewOut>
+    basic_plan_r2c(ViewIn in, ViewOut out, Flags flags)
+        : base(detail::template plan_dft_r2c<D, Real, Complex>(in, out, flags)) {}
+
+    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
+};
+
+template <size_t D, class Real, class Complex = std::complex<Real>>
+class basic_plan_c2r : public plan_base<D, Real, Complex> {
+  private:
+    using base = plan_base<D, Real, Complex>;
+    using plan_t = typename base::plan_t;
+
+  public:
+    using real_t = Real;
+    using complex_t = Complex;
+
+    using base::c_plan;
+    using base::plan_base;
+    using base::operator();
+
+    template <typename ViewIn, typename ViewOut>
+    basic_plan_c2r(ViewIn in, ViewOut out, Flags flags)
+        : base(detail::template plan_dft_c2r<D, Real, Complex>(in, out, flags)) {}
+
+    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
+};
+
 template <size_t D, class Real, class Complex>
 template <typename ViewIn, typename ViewOut>
-auto basic_plan_r2c<D, Real, Complex>::dft(ViewIn in, ViewOut out, fftw::Flags flags)
-    -> basic_plan_r2c<D, Real, Complex> {
-    auto c_plan = detail::template plan_dft_r2c<D, Real, Complex>(in, out, flags);
-    return basic_plan_r2c{c_plan};
+void basic_plan_r2c<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
+    fftw_execute_dft_r2c(c_plan(), detail::unwrap<true, Real, Complex>(in),
+                         detail::unwrap<false, Real, Complex>(out));
 }
 
 template <size_t D, class Real, class Complex>
 template <typename ViewIn, typename ViewOut>
-auto basic_plan_c2r<D, Real, Complex>::dft(ViewIn in, ViewOut out, fftw::Flags flags)
-    -> basic_plan_c2r<D, Real, Complex> {
-    auto c_plan = detail::template plan_dft_c2r<D, Real, Complex>(in, out, flags);
-    return basic_plan_c2r{c_plan};
+void basic_plan_c2r<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
+    fftw_execute_dft_c2r(c_plan(), detail::unwrap<false, Real, Complex>(in),
+                         detail::unwrap<true, Real, Complex>(out));
 }
 
 } // namespace fftw

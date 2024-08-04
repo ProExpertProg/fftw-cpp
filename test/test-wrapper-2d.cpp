@@ -19,8 +19,8 @@ int main() {
 
     static_assert(fftw::appropriate_buffer<2u, double, std::complex<double>, decltype(in)>);
 
-    auto p = fftw::plan<2u>::dft(in, out, fftw::FORWARD, fftw::Flags::ESTIMATE);
-    auto pInv = fftw::plan<2u>::dft(out, out2, fftw::BACKWARD, fftw::Flags::ESTIMATE);
+    auto p = fftw::plan<2u>(in, out, fftw::FORWARD, fftw::Flags::ESTIMATE);
+    auto pInv = fftw::plan<2u>(out, out2, fftw::BACKWARD, fftw::Flags::ESTIMATE);
 
     for (int j = 0; j < in.extent(0); ++j) {
         for (int k = 0; k < in.extent(1); ++k) {
