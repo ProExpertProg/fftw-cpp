@@ -129,7 +129,6 @@ class basic_plan : public plan_base<D, Real, Complex> {
         requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
     basic_plan(BufferIn &in, BufferOut &out, Direction direction, Flags flags)
         : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
-        if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
         if (direction != FORWARD and direction != BACKWARD) {
             throw std::invalid_argument("invalid direction");
         }
@@ -139,7 +138,6 @@ class basic_plan : public plan_base<D, Real, Complex> {
         requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
     basic_plan(ViewIn in, ViewOut out, Direction direction, Flags flags)
         : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
-        if (in.size() != out.size()) { throw std::invalid_argument("mismatched buffer sizes"); }
         if (direction != FORWARD and direction != BACKWARD) {
             throw std::invalid_argument("invalid direction");
         }
@@ -275,7 +273,9 @@ class basic_plan_r2c : public plan_base<D, Real, Complex> {
     basic_plan_r2c(ViewIn in, ViewOut out, Flags flags)
         : base(detail::template plan_dft_r2c<D, Real, Complex>(in, out, flags)) {}
 
-    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
+    template <typename ViewIn, typename ViewOut>
+        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
+    void operator()(ViewIn in, ViewOut out) const;
 };
 
 template <size_t D, class Real, class Complex = std::complex<Real>>
@@ -296,11 +296,14 @@ class basic_plan_c2r : public plan_base<D, Real, Complex> {
     basic_plan_c2r(ViewIn in, ViewOut out, Flags flags)
         : base(detail::template plan_dft_c2r<D, Real, Complex>(in, out, flags)) {}
 
-    template <typename ViewIn, typename ViewOut> void operator()(ViewIn in, ViewOut out) const;
+    template <typename ViewIn, typename ViewOut>
+        requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
+    void operator()(ViewIn in, ViewOut out) const;
 };
 
 template <size_t D, class Real, class Complex>
 template <typename ViewIn, typename ViewOut>
+    requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
 void basic_plan_r2c<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
     fftw_execute_dft_r2c(c_plan(), detail::unwrap<true, Real, Complex>(in),
                          detail::unwrap<false, Real, Complex>(out));
@@ -308,6 +311,7 @@ void basic_plan_r2c<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const 
 
 template <size_t D, class Real, class Complex>
 template <typename ViewIn, typename ViewOut>
+    requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
 void basic_plan_c2r<D, Real, Complex>::operator()(ViewIn in, ViewOut out) const {
     fftw_execute_dft_c2r(c_plan(), detail::unwrap<false, Real, Complex>(in),
                          detail::unwrap<true, Real, Complex>(out));
