@@ -24,11 +24,6 @@ template <size_t D, class Real, class Complex> class plan_base {
     void operator()() const { fftw_execute(c_plan()); };
 };
 
-/// This concept checks that the layout is appropriate for this type of plan.
-/// By default, it is false
-template <typename Layout>
-concept appropriate_layout = std::same_as<MDSPAN::layout_right, Layout>;
-// TODO support for other layouts
 
 /// This boolean checks that the buffer is appropriate for this type of plan.
 /// By default, it is false
@@ -57,7 +52,7 @@ template <size_t D, class Real, class Complex, typename T>
 constexpr inline bool appropriate_view = false;
 
 // We also allow a multi-d view for the same number of dimensions
-template <size_t D, class Real, class Complex, appropriate_layout Layout, typename ExtentsIndexType,
+template <size_t D, class Real, class Complex, typename Layout, typename ExtentsIndexType,
           ExtentsIndexType... I>
 constexpr inline bool
     appropriate_view<D, Real, Complex,
@@ -76,7 +71,7 @@ auto unwrap(basic_buffer<Real, Complex, IsReal> &buf) {
 }
 
 // TODO this is just a fix until we get a proper mdbuffer
-template <bool IsReal, typename Real, typename Complex, typename Extents, appropriate_layout Layout>
+template <bool IsReal, typename Real, typename Complex, typename Extents, typename Layout>
 auto unwrap(basic_mdbuffer<Real, Extents, Complex, Layout, IsReal> &buf) {
     // for now, this is what FFT expects
     // TODO proper underlying element type
