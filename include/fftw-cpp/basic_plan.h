@@ -24,7 +24,6 @@ template <size_t D, class Real, class Complex> class plan_base {
     void operator()() const { fftw_execute(c_plan()); };
 };
 
-
 /// This boolean checks that the buffer is appropriate for this type of plan.
 /// By default, it is false
 template <size_t D, class Real, class Complex, typename T>
@@ -113,19 +112,24 @@ template <size_t D> std::array<fftw_iodim, D> get_dims(auto const &in, auto cons
 
 template <size_t D, class Real, class Complex>
     requires(D == 1u) && std::same_as<Real, double>
-
-auto plan_dft(auto &in, auto &out, Direction direction, Flags flags) {
+auto plan_dft_buffer(auto &in, auto &out, Direction direction, Flags flags) {
     return fftw_plan_dft_1d(in.size(), unwrap<false, Real, Complex>(in),
-                            unwrap<false, Real, Complex>(out), direction, flags);
+                            unwrap<false, Real, Complex>(out), static_cast<int>(direction), flags);
 }
 
 template <size_t D, class Real, class Complex>
     requires(D == 2u) && std::same_as<Real, double>
-
-auto plan_dft(auto &in, auto &out, Direction direction, Flags flags) {
-    // TODO for layout left this is different
+auto plan_dft_buffer(auto &in, auto &out, Direction direction, Flags flags) {
     return fftw_plan_dft_2d(in.extent(0), in.extent(1), unwrap<false, Real, Complex>(in),
                             unwrap<false, Real, Complex>(out), direction, flags);
+}
+
+template <size_t D, class Real, class Complex>
+    requires std::same_as<Real, double>
+auto plan_dft(auto &in, auto &out, Direction direction, Flags flags) {
+    return fftw_plan_guru_dft(D, get_dims<D>(in, out).data(), 0, NULL,
+                              unwrap<false, Real, Complex>(in), unwrap<false, Real, Complex>(out),
+                              direction, flags);
 }
 } // namespace detail
 
@@ -146,20 +150,12 @@ class basic_plan : public plan_base<D, Real, Complex> {
     template <typename BufferIn, typename BufferOut>
         requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
     basic_plan(BufferIn &in, BufferOut &out, Direction direction, Flags flags)
-        : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
-        if (direction != FORWARD and direction != BACKWARD) {
-            throw std::invalid_argument("invalid direction");
-        }
-    }
+        : base(detail::template plan_dft_buffer<D, Real, Complex>(in, out, direction, flags)) {}
 
     template <typename ViewIn, typename ViewOut>
         requires appropriate_views<D, Real, Complex, ViewIn, ViewOut>
     basic_plan(ViewIn in, ViewOut out, Direction direction, Flags flags)
-        : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {
-        if (direction != FORWARD and direction != BACKWARD) {
-            throw std::invalid_argument("invalid direction");
-        }
-    }
+        : base(detail::template plan_dft<D, Real, Complex>(in, out, direction, flags)) {}
 
     template <typename BufferIn, typename BufferOut>
         requires appropriate_buffers<D, Real, Complex, BufferIn, BufferOut>
@@ -209,7 +205,7 @@ template <size_t D, class Real, class Complex>
 auto plan_dft_r2c(auto in, auto out, Flags flags) {
     return fftw_plan_guru_dft_r2c(D, get_dims<D>(in, out).data(), 0, NULL,
                                   unwrap<true, Real, Complex>(in),
-                             unwrap<false, Real, Complex>(out), flags);
+                                  unwrap<false, Real, Complex>(out), flags);
 }
 
 template <size_t D, class Real, class Complex>
@@ -217,7 +213,7 @@ template <size_t D, class Real, class Complex>
 auto plan_dft_c2r(auto &in, auto &out, Flags flags) {
     return fftw_plan_guru_dft_c2r(D, get_dims<D>(in, out).data(), 0, NULL,
                                   unwrap<false, Real, Complex>(in),
-                             unwrap<true, Real, Complex>(out), flags);
+                                  unwrap<true, Real, Complex>(out), flags);
 }
 } // namespace detail
 
