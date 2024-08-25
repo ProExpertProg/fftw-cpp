@@ -9,7 +9,7 @@
 namespace fftw {
 
 // not enum classes for conversion and because namespacing isn't required
-enum Direction {
+enum class Direction {
     FORWARD = FFTW_FORWARD,
     BACKWARD = FFTW_BACKWARD,
 };
