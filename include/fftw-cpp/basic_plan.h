@@ -88,6 +88,29 @@ auto *unwrap(MDSPAN::mdspan<std::conditional_t<IsReal, Real, Complex>, Extents, 
     return reinterpret_cast<underlying_element_type<IsReal, Real, Complex> *>(view.data_handle());
 }
 
+template <size_t D> std::array<fftw_iodim, D> get_dims(auto const &in, auto const &out) {
+    using layout_in = typename std::decay_t<decltype(in)>::layout_type;
+    using layout_out = typename std::decay_t<decltype(out)>::layout_type;
+
+    constexpr bool in_right = std::same_as<MDSPAN::layout_right, layout_in>;
+    constexpr bool out_right = std::same_as<MDSPAN::layout_right, layout_out>;
+
+    std::array<fftw_iodim, D> dims;
+
+    auto get_index = [](std::size_t i, bool is_right) -> std::size_t {
+        return is_right ? i : (D - 1 - i);
+    };
+
+    for (int i = 0; i < D; i++) {
+        dims[i].n =
+            std::max(in.extent(get_index(i, in_right)), out.extent(get_index(i, out_right)));
+        dims[i].is = in.stride(get_index(i, in_right));
+        dims[i].os = out.stride(get_index(i, out_right));
+    }
+
+    return dims;
+}
+
 template <size_t D, class Real, class Complex>
     requires(D == 1u) && std::same_as<Real, double>
 
@@ -173,34 +196,6 @@ namespace detail {
 //  the dimensions in the output are reversed, kind of defeating the purpose of layouts
 //  If people really want to switch layouts they'll have to reverse it themselves.
 
-template <size_t D> std::array<int, D> dims(auto in, auto out) {
-    static_assert(D == 2u && "Currently only supporting 2D");
-    using layout_in = typename std::decay_t<decltype(in)>::layout_type;
-    using layout_out = typename std::decay_t<decltype(out)>::layout_type;
-
-    // TODO layouts other than right and left
-    constexpr bool in_right = std::same_as<MDSPAN::layout_right, layout_in>;
-    constexpr bool out_right = std::same_as<MDSPAN::layout_right, layout_out>;
-
-    auto Validate = [&](bool condition) {
-        if (!condition) { throw std::invalid_argument("Extents don't match"); }
-    };
-
-    if (in_right == out_right) {
-        Validate(in.extent(0) == out.extent(0));
-        Validate(in.extent(1) == out.extent(1));
-    } else {
-        Validate(in.extent(0) == out.extent(1));
-        Validate(in.extent(1) == out.extent(0));
-    }
-
-    if constexpr (in_right) {
-        return {int(in.extent(0)), int(in.extent(1))};
-    } else {
-        return {int(in.extent(1)), int(in.extent(0))};
-    }
-}
-
 template <size_t... I> auto extents_impl(auto src, std::index_sequence<I...> indices) {
     return std::array<int, sizeof...(I)>{int(src.extent(I))...};
 }
@@ -209,43 +204,19 @@ template <size_t D> std::array<int, D> extents(auto src) {
     return extents_impl(src, std::make_index_sequence<D>());
 }
 
-template <size_t D> std::array<int, D> dims_r2c(auto r, auto c) {
-    static_assert(D == 2u && "Currently only supporting 2D");
-    using layout_r = typename std::decay_t<decltype(r)>::layout_type;
-    using layout_c = typename std::decay_t<decltype(c)>::layout_type;
-
-    // TODO layouts other than right and left
-    constexpr bool r_right = std::same_as<MDSPAN::layout_right, layout_r>;
-    constexpr bool c_right = std::same_as<MDSPAN::layout_right, layout_c>;
-
-    auto Validate = [&](bool condition) {
-        if (!condition) { throw std::invalid_argument("Extents don't match"); }
-    };
-
-    std::array<int, D> r_extents{extents<D>(r)}, c_extents{extents<D>(c)};
-    auto Swap = [&](std::array<int, D> &a) { std::swap(a[0], a[1]); };
-
-    if (!r_right) { Swap(r_extents); }
-    if (!c_right) { Swap(c_extents); }
-    // extent
-
-    Validate(r_extents[0] == c_extents[0]);
-    Validate(r_extents[1] / 2 + 1 == c_extents[1]);
-
-    return r_extents;
-}
-
 template <size_t D, class Real, class Complex>
     requires std::same_as<Real, double>
 auto plan_dft_r2c(auto in, auto out, Flags flags) {
-    return fftw_plan_dft_r2c(D, dims_r2c<D>(in, out).data(), unwrap<true, Real, Complex>(in),
+    return fftw_plan_guru_dft_r2c(D, get_dims<D>(in, out).data(), 0, NULL,
+                                  unwrap<true, Real, Complex>(in),
                              unwrap<false, Real, Complex>(out), flags);
 }
 
 template <size_t D, class Real, class Complex>
     requires std::same_as<Real, double>
-auto plan_dft_c2r(auto in, auto out, Flags flags) {
-    return fftw_plan_dft_c2r(D, dims_r2c<D>(out, in).data(), unwrap<false, Real, Complex>(in),
+auto plan_dft_c2r(auto &in, auto &out, Flags flags) {
+    return fftw_plan_guru_dft_c2r(D, get_dims<D>(in, out).data(), 0, NULL,
+                                  unwrap<false, Real, Complex>(in),
                              unwrap<true, Real, Complex>(out), flags);
 }
 } // namespace detail
