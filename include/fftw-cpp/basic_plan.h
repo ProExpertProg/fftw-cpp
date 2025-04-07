@@ -9,6 +9,7 @@ namespace fftw {
 
 template <size_t D, class Real, class Complex> class plan_base {
   protected:
+    size_t dimensions;
     using plan_t = detail::fftw_plan_t<Real>;
     std::unique_ptr<std::remove_pointer_t<plan_t>, decltype(&fftw_destroy_plan)> plan;
 
@@ -99,12 +100,11 @@ template <size_t D> std::array<fftw_iodim, D> get_dims(auto const &in, auto cons
     auto get_index = [](std::size_t i, bool is_right) -> std::size_t {
         return is_right ? i : (D - 1 - i);
     };
-
     for (int i = 0; i < D; i++) {
         dims[i].n =
             std::max(in.extent(get_index(i, in_right)), out.extent(get_index(i, out_right)));
-        dims[i].is = in.stride(get_index(i, in_right));
-        dims[i].os = out.stride(get_index(i, out_right));
+        dims[get_index(i, in_right)].is = in.stride(i);
+        dims[get_index(i, out_right)].os = out.stride(i);
     }
 
     return dims;
@@ -192,14 +192,6 @@ namespace detail {
 //  the dimensions in the output are reversed, kind of defeating the purpose of layouts
 //  If people really want to switch layouts they'll have to reverse it themselves.
 
-template <size_t... I> auto extents_impl(auto src, std::index_sequence<I...> indices) {
-    return std::array<int, sizeof...(I)>{int(src.extent(I))...};
-}
-
-template <size_t D> std::array<int, D> extents(auto src) {
-    return extents_impl(src, std::make_index_sequence<D>());
-}
-
 template <size_t D, class Real, class Complex>
     requires std::same_as<Real, double>
 auto plan_dft_r2c(auto in, auto out, Flags flags) {
@@ -210,7 +202,7 @@ auto plan_dft_r2c(auto in, auto out, Flags flags) {
 
 template <size_t D, class Real, class Complex>
     requires std::same_as<Real, double>
-auto plan_dft_c2r(auto &in, auto &out, Flags flags) {
+auto plan_dft_c2r(auto in, auto out, Flags flags) {
     return fftw_plan_guru_dft_c2r(D, get_dims<D>(in, out).data(), 0, NULL,
                                   unwrap<false, Real, Complex>(in),
                                   unwrap<true, Real, Complex>(out), flags);
@@ -231,8 +223,8 @@ class basic_plan_r2c : public plan_base<D, Real, Complex> {
     using base::plan_base;
     using base::operator();
 
-    template <typename ViewIn, typename ViewOut>
-    basic_plan_r2c(ViewIn in, ViewOut out, Flags flags)
+    template <typename Extents, typename LayoutIn, typename LayoutOut>
+    basic_plan_r2c(MDSPAN::mdspan<Real, Extents, LayoutIn> in, MDSPAN::mdspan<Complex, Extents, LayoutOut> out, Flags flags)
         : base(detail::template plan_dft_r2c<D, Real, Complex>(in, out, flags)) {}
 
     template <typename ViewIn, typename ViewOut>
@@ -254,8 +246,8 @@ class basic_plan_c2r : public plan_base<D, Real, Complex> {
     using base::plan_base;
     using base::operator();
 
-    template <typename ViewIn, typename ViewOut>
-    basic_plan_c2r(ViewIn in, ViewOut out, Flags flags)
+    template <typename Extents, typename LayoutIn, typename LayoutOut>
+    basic_plan_c2r(MDSPAN::mdspan<Complex, Extents, LayoutIn> in, MDSPAN::mdspan<Real, Extents, LayoutOut> out, Flags flags)
         : base(detail::template plan_dft_c2r<D, Real, Complex>(in, out, flags)) {}
 
     template <typename ViewIn, typename ViewOut>
